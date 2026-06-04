@@ -3247,9 +3247,6 @@ function MobileCatalog({ onOpen }) {
   const [filters, setFilters] = useState({
     groups: [], region: 'msk', cities: [], periods: [], statuses: []
   });
-  const [mapBounds, setMapBounds] = useState(null);
-  const [boundsActive, setBoundsActive] = useState(false);
-  const boundsTimerRef = useRef(null);
   const mapContainerRef = useRef(null);
 
   const filtered = useMemo(() => {
@@ -3264,27 +3261,6 @@ function MobileCatalog({ onOpen }) {
     if (filters.statuses.length) xs = xs.filter((o) => filters.statuses.includes(o.status));
     return xs;
   }, [filters]);
-
-  const visibleObjects = useMemo(() => {
-    if (!boundsActive || !mapBounds) return filtered;
-    return filtered.filter(o => {
-      return o.lat >= mapBounds._southWest.lat && o.lat <= mapBounds._northEast.lat &&
-             o.lng >= mapBounds._southWest.lng && o.lng <= mapBounds._northEast.lng;
-    });
-  }, [filtered, mapBounds, boundsActive]);
-
-  const onMapBoundsChange = useCallback((bounds) => {
-    if (boundsTimerRef.current) clearTimeout(boundsTimerRef.current);
-    boundsTimerRef.current = setTimeout(() => {
-      setMapBounds(bounds);
-      setBoundsActive(true);
-    }, 200);
-  }, []);
-
-  const resetBounds = () => {
-    setBoundsActive(false);
-    setMapBounds(null);
-  };
 
   // invalidateSize when switching to map
   useEffect(() => {
@@ -3335,21 +3311,16 @@ function MobileCatalog({ onOpen }) {
           <MoreFilters filters={filters} setFilters={setFilters} />
         </div>
         <span className="mono" style={{ fontSize: 11, color: 'var(--ink-3)', letterSpacing: '.04em' }}>
-          {boundsActive ? visibleObjects.length : filtered.length} объектов
+          {filtered.length} объектов
         </span>
       </div>
 
       {view === 'list' ?
       <div style={{ padding: '12px 14px', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {boundsActive && <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-            <button onClick={resetBounds} className="map-bounds-chip" style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none' }}>
-              <I name="close" className="ic-sm" />Показать все ({filtered.length})
-            </button>
-          </div>}
-          {visibleObjects.map((o) =>
+          {filtered.map((o) =>
         <ObjectCard key={o.id} obj={o} onOpen={onOpen} />
         )}
-          {visibleObjects.length === 0 &&
+          {filtered.length === 0 &&
           <div className="card" style={{ textAlign: 'center', padding: '36px 12px', color: 'var(--ink-3)' }}>
             Объектов не найдено
           </div>
@@ -3357,17 +3328,14 @@ function MobileCatalog({ onOpen }) {
         </div> :
 
       <div ref={mapContainerRef} className="mobile-map-container" style={{ height: 'calc(100dvh - var(--header-h) - 150px)', minHeight: 360, position: 'relative' }}>
-          <MapPane objects={filtered} hoverId={null} setHoverId={() => {}} onOpen={onOpen} onBoundsChange={onMapBoundsChange} />
-          {boundsActive && <button onClick={resetBounds} className="map-bounds-chip">
-            <I name="close" className="ic-sm" />Показать все
-          </button>}
+          <MapPane objects={filtered} hoverId={null} setHoverId={() => {}} onOpen={onOpen} />
         </div>
       }
 
       {/* Bottom floating toggle button */}
       <button className="mobile-bottom-btn" onClick={() => setView(view === 'map' ? 'list' : 'map')}>
         <I name={view === 'map' ? 'list' : 'map'} className="ic-sm" style={{ color: '#fff' }} />
-        {view === 'map' ? `Список (${boundsActive ? visibleObjects.length : filtered.length})` : 'Карта'}
+        {view === 'map' ? `Список (${filtered.length})` : 'Карта'}
       </button>
     </div>);
 
@@ -3556,4 +3524,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
-
